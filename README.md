@@ -1,47 +1,38 @@
-Laptop
-======
+# Laptop
 
-Laptop is a script to set up a macOS laptop for web and mobile development.
+Laptop is a script to set up an Ubuntu laptop for web and mobile development.
 
 It can be run multiple times on the same machine safely.
-It installs, upgrades, or skips packages
-based on what is already installed on the machine.
+It installs, upgrades, or skips packages based on what is already installed on the machine.
 
-Requirements
-------------
+## Compatibility
 
-We support:
+Currently we only support Ubuntu Focal 20.04 (LTS).
 
-* macOS Mavericks (10.9)
-* macOS Yosemite (10.10)
-* macOS El Capitan (10.11)
-* macOS Sierra (10.12)
-* macOS High Sierra (10.13)
-* macOS Mojave (10.14)
-* macOS Catalina (10.15)
+## Install
 
-Older versions may work but aren't regularly tested.
-Bug reports for older versions are welcome.
+First, install curl - you will probably have to type your password:
 
-Install
--------
+```sh
+sudo apt update && sudo apt install curl
+```
 
 Download the script:
 
 ```sh
-curl --remote-name https://raw.githubusercontent.com/thoughtbot/laptop/master/mac
+curl --remote-name https://raw.githubusercontent.com/inteligovbr/laptop/main/ubuntu
 ```
 
 Review the script (avoid running scripts you haven't read!):
 
 ```sh
-less mac
+less ubuntu
 ```
 
-Execute the downloaded script:
+Execute the downloaded script with your github email as the first argument:
 
 ```sh
-sh mac 2>&1 | tee ~/laptop.log
+bash ubuntu "email@example.com" 2>&1 | tee ~/laptop.log
 ```
 
 Optionally, review the log:
@@ -50,93 +41,102 @@ Optionally, review the log:
 less ~/laptop.log
 ```
 
-Optionally, [install thoughtbot/dotfiles][dotfiles].
-
-[dotfiles]: https://github.com/thoughtbot/dotfiles#install
-
-Debugging
----------
+## Debugging
 
 Your last Laptop run will be saved to `~/laptop.log`.
 Read through it to see if you can debug the issue yourself.
-If not, copy the lines where the script failed into a
-[new GitHub Issue](https://github.com/thoughtbot/laptop/issues/new) for us.
-Or, attach the whole log file as an attachment.
+If not, copy the lines where the script failed into a [new GitHub Issue](https://github.com/inteligovbr/laptop/issues/new) for us. Or, attach the whole log file as an attachment.
 
-What it sets up
----------------
-
-macOS tools:
-
-* [Homebrew] for managing operating system libraries.
-
-[Homebrew]: http://brew.sh/
+## What it sets up
 
 Unix tools:
 
-* [Universal Ctags] for indexing files for vim tab completion
-* [Git] for version control
-* [OpenSSL] for Transport Layer Security (TLS)
-* [RCM] for managing company and personal dotfiles
-* [The Silver Searcher] for finding things in files
-* [Tmux] for saving project state and switching between projects
-* [Watchman] for watching for filesystem events
-* [Zsh] as your shell
+- [Homebrew] for managing operating system libraries.
+- [Universal Ctags] for indexing files for vim tab completion
+- [Git] for version control
+- [OpenSSL] for Transport Layer Security (TLS)
+- [RCM] for managing company and personal dotfiles
+- [Tmux] for saving project state and switching between projects
+- [Watchman] for watching for filesystem events
+- [Zsh] as your shell
+- [ngrok] for exposing local servers to the internet through secure tunnels
+- [Docker] to run containers
+- [Doker compose] to run multiple containers at once
 
-[Universal Ctags]: https://ctags.io/
-[Git]: https://git-scm.com/
-[OpenSSL]: https://www.openssl.org/
-[RCM]: https://github.com/thoughtbot/rcm
-[The Silver Searcher]: https://github.com/ggreer/the_silver_searcher
-[Tmux]: http://tmux.github.io/
-[Watchman]: https://facebook.github.io/watchman/
-[Zsh]: http://www.zsh.org/
+[homebrew]: http://brew.sh/q
+[universal ctags]: https://ctags.io/
+[git]: https://git-scm.com/
+[openssl]: https://www.openssl.org/
+[rcm]: https://github.com/thoughtbot/rcm
+[tmux]: http://tmux.github.io/
+[watchman]: https://facebook.github.io/watchman/
+[zsh]: http://www.zsh.org/
+[ngrok]: https://ngrok.com/
+[docker]: https://docs.docker.com/
+[docker compose]: https://docs.docker.com/compose/
 
 Heroku tools:
 
-* [Heroku CLI] and [Parity] for interacting with the Heroku API
+- [Heroku CLI] and [Parity] for interacting with the Heroku API
 
-[Heroku CLI]: https://devcenter.heroku.com/articles/heroku-cli
-[Parity]: https://github.com/thoughtbot/parity
+[heroku cli]: https://devcenter.heroku.com/articles/heroku-cli
+[parity]: https://github.com/thoughtbot/parity
 
 GitHub tools:
 
-* [GitHub CLI] for interacting with the GitHub API
+- [GitHub CLI] for interacting with the GitHub API
 
-[GitHub CLI]: https://cli.github.com/
+[github cli]: https://cli.github.com/
 
 Image tools:
 
-* [ImageMagick] for cropping and resizing images
+- [ImageMagick] for cropping and resizing images
+
+[imagemagick]: http://www.imagemagick.org/
 
 Programming languages, package managers, and configuration:
 
-* [asdf-vm] for managing programming language versions
-* [Bundler] for managing Ruby libraries
-* [Node.js] and [npm], for running apps and installing JavaScript packages
-* [Ruby] stable for writing general-purpose code
-* [Yarn] for managing JavaScript packages
+- [Bundler] for managing Ruby libraries
+- [asdf-vm] for managing programming language versions
+- [Node.js], [npm] and [yarn] for running apps and installing JavaScript packages
+- [Ruby] stable for writing general-purpose code
 
-[Bundler]: http://bundler.io/
-[ImageMagick]: http://www.imagemagick.org/
-[Node.js]: http://nodejs.org/
-[npm]: https://www.npmjs.org/
+[bundler]: http://bundler.io/
 [asdf-vm]: https://github.com/asdf-vm/asdf
-[Ruby]: https://www.ruby-lang.org/en/
-[Yarn]: https://yarnpkg.com/en/
+[node.js]: http://nodejs.org/
+[npm]: https://www.npmjs.org/
+[yarn]: https://yarnpkg.com/en/
+[ruby]: https://www.ruby-lang.org/en/
 
 Databases:
 
-* [Postgres] for storing relational data
-* [Redis] for storing key-value data
+- [Postgres] for storing relational data
+- [Redis] for storing key-value data
+- [Elasticsearch] for full-text search
 
-[Postgres]: http://www.postgresql.org/
-[Redis]: http://redis.io/
+[postgres]: http://www.postgresql.org/
+[redis]: http://redis.io/
+[elasticsearch]: https://www.elastic.co/pt/what-is/elasticsearch/
 
-It should take less than 15 minutes to install (depends on your machine).
+Applications:
 
-Customize in `~/.laptop.local`
-------------------------------
+- [Visual Studio Code] as your text editor
+- [Google Chrome] as your browser
+- [Slack] to communicate with the team
+- [Bitwrden] for password management
+
+[visual studio code]: https://code.visualstudio.com/
+[google chrome]: https://www.google.com/chrome/
+[slack]: https://slack.com/
+[bitwarden]: https://bitwarden.com/
+
+It should take around 20 minutes to install (depends on your machine).
+
+## Log out
+
+At the end of the script, you will be prompted to logout. Do so and simply login back again so that all the changes take effect.
+
+## Customize in `~/.laptop.local`
 
 Your `~/.laptop.local` is run at the end of the Laptop script.
 Put your customizations there.
@@ -146,9 +146,7 @@ For example:
 #!/bin/sh
 
 brew bundle --file=- <<EOF
-brew "Caskroom/cask/dockertoolbox"
 brew "go"
-brew "ngrok"
 brew "watch"
 EOF
 
@@ -179,58 +177,17 @@ fi
 ```
 
 Write your customizations such that they can be run safely more than once.
-See the `mac` script for examples.
+See the `ubuntu` script for examples.
 
 Laptop functions such as `fancy_echo` and
 `gem_install_or_update`
 can be used in your `~/.laptop.local`.
 
-See the [wiki](https://github.com/thoughtbot/laptop/wiki)
+See the thoughtbot's [wiki](https://github.com/thoughtbot/laptop/wiki)
 for more customization examples.
 
-Contributing
-------------
+## Customize your terminal
 
-Edit the `mac` file.
-Document in the `README.md` file.
-Follow shell style guidelines by using [ShellCheck] and [Syntastic].
+You can keep the default Gnome terminal or change to something like [hyper](https://hyper.is).
 
-```sh
-brew install shellcheck
-```
-
-[ShellCheck]: http://www.shellcheck.net/about.html
-[Syntastic]: https://github.com/scrooloose/syntastic
-
-Thank you, [contributors]!
-
-[contributors]: https://github.com/thoughtbot/laptop/graphs/contributors
-
-By participating in this project,
-you agree to abide by the thoughtbot [code of conduct].
-
-[code of conduct]: https://thoughtbot.com/open-source-code-of-conduct
-
-License
--------
-
-Laptop is © 2011-2020 thoughtbot, inc.
-It is free software,
-and may be redistributed under the terms specified in the [LICENSE] file.
-
-[LICENSE]: LICENSE
-
-About thoughtbot
-----------------
-
-![thoughtbot](https://thoughtbot.com/brand_assets/93:44.svg)
-
-Laptop is maintained and funded by thoughtbot, inc.
-The names and logos for thoughtbot are trademarks of thoughtbot, inc.
-
-We are passionate about open source software.
-See [our other projects][community].
-We are [available for hire][hire].
-
-[community]: https://thoughtbot.com/community?utm_source=github
-[hire]: https://thoughtbot.com?utm_source=github
+Anyway, change the color scheme to something you enjoy and use the MesloLGS font which was already downloaded by the script. You can do this both on your terminal and vscode. These customizations will pay off!

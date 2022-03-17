@@ -1,0 +1,310 @@
+#!/bin/bash
+
+# Welcome to inteligov's laptop script!
+# Be prepared to turn your laptop (or desktop, no haters here)
+# into an awesome development machine.
+
+fancy_echo() {
+  local fmt="$1"; shift
+
+  # shellcheck disable=SC2059
+  printf "\\n$fmt\\n" "$@"
+}
+
+append_to_zshrc() {
+  local text="$1" zshrc
+  local skip_new_line="${2:-0}"
+
+  if [ -w "$HOME/.zshrc.local" ]; then
+    zshrc="$HOME/.zshrc.local"
+  else
+    zshrc="$HOME/.zshrc"
+  fi
+
+  if ! grep -Fqs "$text" "$zshrc"; then
+    if [ "$skip_new_line" -eq 1 ]; then
+      printf "%s\\n" "$text" >> "$zshrc"
+    else
+      printf "\\n%s\\n" "$text" >> "$zshrc"
+    fi
+  fi
+}
+
+# shellcheck disable=SC2154
+trap 'ret=$?; test $ret -ne 0 && printf "failed\n\n" >&2; exit $ret' EXIT
+
+set -e
+
+sudo apt-get update
+
+if [ ! -d "$HOME/.bin/" ]; then
+  mkdir "$HOME/.bin"
+fi
+
+if [ ! -f "$HOME/.zshrc" ]; then
+  touch "$HOME/.zshrc"
+fi
+append_to_zshrc "export EDITOR='code --wait'"
+
+
+if [ ! -f "$HOME/.hushlogin" ]; then
+  touch "$HOME/.hushlogin"
+fi
+
+if [ ! -d "/home/linuxbrew/.linuxbrew" ]; then
+  sudo mkdir -p "/home/linuxbrew/.linuxbrew"
+fi
+
+# shellcheck disable=SC2016
+append_to_zshrc 'export PATH="$HOME/.bin:$PATH"'
+
+# add user to adm group
+if [ ! $(getent group adm) ]; then
+  sudo addgroup adm
+fi
+
+HOMEBREW_PREFIX="/home/linuxbrew/.linuxbrew"
+if [ -d "$HOMEBREW_PREFIX" ]; then
+  if ! [ -r "$HOMEBREW_PREFIX" ]; then
+    sudo chown -R "$LOGNAME:adm" /usr/local
+  fi
+else
+  sudo chown -R "$LOGNAME:adm" "$HOMEBREW_PREFIX"
+fi
+
+# install git
+command -v git >/dev/null 2>&1 ||
+{ echo >&2 "Installing git...";
+  sudo apt-get install git -y
+  sudo git config --global commit.gpgsign true
+}
+
+# setup ssh (for github)
+if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
+  ssh-keygen -q -t ed25519 -C "$1" -N '' <<< $'\ny' >/dev/null
+  ssh-add "$HOME/.ssh/id_ed25519"
+fi
+
+# install universal-ctags - no brew formula for linux
+sudo apt-get install universal-ctags
+
+# setup dotfiles
+if [ ! -f "$HOME/.gemrc" ]; then
+  touch "$HOME/.gemrc"
+  echo "gem: --no-document" >> "$HOME/.gemrc"
+  echo "install: --no-rdoc --no-ri" >> "$HOME/.gemrc"
+  echo "update:  --no-rdoc --no-ri" >> "$HOME/.gemrc"
+fi
+
+if [ ! -f "$HOME/.irbrc" ]; then
+  touch "$HOME/.irbrc"
+  echo 'require "irb/completion"' >> "$HOME/.irbrc"
+fi
+
+# setup zsh
+update_shell() {
+  fancy_echo "Changing your shell to zsh ..."
+  local shell_path;
+  shell_path="/usr/bin/zsh"
+
+  if ! grep "$shell_path" /etc/shells > /dev/null 2>&1 ; then
+    fancy_echo "Adding '$shell_path' to /etc/shells"
+    sudo sh -c "echo '$shell_path' >> /etc/shells"
+  fi
+  sudo chsh "$USER" -s "$shell_path"
+}
+
+
+case "$SHELL" in
+  */zsh)
+    if [ "$(command -v zsh)" != "/usr/bin/zsh" ] ; then
+      update_shell
+    fi
+    ;;
+  *)
+    sudo apt-get install zsh -y
+    update_shell
+    ;;
+esac
+
+# install homebrew and packages
+if ! command -v brew > /dev/null; then
+  fancy_echo "Installing Homebrew ..."
+    /bin/bash -c \
+      "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" < /dev/null
+
+    append_to_zshrc '# recommended by brew doctor'
+    # shellcheck disable=SC2016
+    append_to_zshrc 'export PATH="/usr/local/bin:$PATH"' 1
+
+    # make your shell aware of homebrew
+    test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
+    test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    test -r ~/.bash_profile && echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> ~/.bash_profile
+    echo "eval \"\$($(brew --prefix)/bin/brew shellenv)\"" >> ~/.profile
+
+    export PATH="/usr/local/bin:$PATH"
+fi
+
+if brew list | grep -Fq brew-cask; then
+  fancy_echo "Uninstalling old Homebrew-Cask ..."
+  brew uninstall --force brew-cask
+fi
+
+
+sudo apt-get install build-essential
+brew install gcc
+
+fancy_echo "Updating Homebrew formulae ..."
+brew update --force # https://github.com/Homebrew/brew/issues/1151
+brew bundle --file=- <<EOF
+tap "thoughtbot/formulae"
+tap "homebrew/services"
+tap "universal-ctags/universal-ctags"
+tap "heroku/brew"
+
+# Unix
+brew "gcc"
+brew "openssl"
+brew "rcm"
+brew "tmux"
+brew "vim"
+brew "watchman"
+brew "zsh-autosuggestions"
+brew "zsh-syntax-highlighting"
+brew "docker"
+brew "docker-compose"
+
+# Heroku
+brew "heroku/brew/heroku"
+brew "parity"
+
+# GitHub
+brew "gh"
+
+# Image manipulation
+brew "imagemagick"
+
+# Programming language prerequisites and package managers
+brew "libyaml" # should come after openssl
+brew "coreutils"
+brew "yarn"
+
+# Databases
+brew "postgres", restart_service: :changed
+brew "redis", restart_service: :changed
+brew "elasticsearch", restart_service: :changed
+
+EOF
+
+# install oh-my-zsh
+if [ ! -d "$HOME/.oh-my-zsh/" ]; then
+  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
+  # add oh-my-zsh plugins
+  sed -i 's/plugins=(git)/plugins=(git ssh-agent asdf rails ruby docker docker-compose dotenv vscode zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
+  git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+  git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+
+  # set autosuggestion config
+  append_to_zshrc "ZSH_AUTOSUGGEST_STRATEGY=(history completion)"
+
+  # change oh-my-zsh theme
+  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+  curl --remote-name https://raw.githubusercontent.com/inteligovbr/laptop/main/.p10k.zsh
+  sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="powerlevel10k\/powerlevel10k"/' "$HOME/.zshrc"
+  append_to_zshrc "# To customize prompt, run 'p10k configure' or edit ~/.p10k.zsh."
+  append_to_zshrc '[[ ! -f $HOME/.p10k.zsh ]] || source $HOME/.p10k.zsh'
+  if [ ! -d "$HOME/.local/share/fonts" ]; then
+    sudo mkdir -p "$HOME/.local/share/fonts"
+  fi
+  sudo wget "https://raw.githubusercontent.com/inteligovbr/laptop/main/fonts/MesloLGS NF Bold Italic.ttf" -O "$HOME/.local/share/fonts/MesloLGS NF Bold Italic.ttf"
+  sudo wget "https://raw.githubusercontent.com/inteligovbr/laptop/main/fonts/MesloLGS NF Bold.ttf" -O "$HOME/.local/share/fonts/MesloLGS NF Bold.ttf"
+  sudo wget "https://raw.githubusercontent.com/inteligovbr/laptop/main/fonts/MesloLGS NF Italic.ttf" -O "$HOME/.local/share/fonts/MesloLGS NF Italic.ttf"
+  sudo wget "https://raw.githubusercontent.com/inteligovbr/laptop/main/fonts/MesloLGS NF Regular.ttf" -O "$HOME/.local/share/fonts/MesloLGS NF Regular.ttf"
+fi
+
+
+gem_install_or_update() {
+  if gem list "$1" --installed > /dev/null; then
+    gem update "$@"
+  else
+    gem install "$@"
+  fi
+}
+
+# Applications
+fancy_echo "Installing applications ..."
+
+# ngrok
+sudo snap install ngrok --classic
+# visual studio code
+sudo snap install code --classic
+# chrome
+sudo wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt-get install ./google-chrome-stable_current_amd64.deb
+sudo rm ./google-chrome-stable_current_amd64.deb
+
+# slack
+sudo snap install slack --classic
+# bitwarden
+sudo snap install bitwarden
+
+fancy_echo "Update heroku binary ..."
+brew unlink heroku
+brew link --force heroku
+
+fancy_echo "Configuring asdf version manager ..."
+git clone https://github.com/asdf-vm/asdf.git "$HOME/.asdf" --branch release-v0.10.0
+append_to_zshrc "export ASDF_DIR=$HOME/.asdf/"
+export ASDF_DIR=$HOME/.asdf/
+. "$HOME/.asdf/asdf.sh"
+
+alias install_asdf_plugin=add_or_update_asdf_plugin
+add_or_update_asdf_plugin() {
+  local name="$1"
+  local url="$2"
+
+  if ! asdf plugin-list | grep -Fq "$name"; then
+    asdf plugin-add "$name" "$url"
+  else
+    asdf plugin-update "$name"
+  fi
+}
+
+# shellcheck disable=SC1090
+add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
+add_or_update_asdf_plugin "nodejs" "https://github.com/asdf-vm/asdf-nodejs.git"
+
+install_asdf_language() {
+  local language="$1"
+  local version
+
+  version="$(asdf list-all "$language" | grep -v "[a-z]" | tail -1)"
+
+  if ! asdf list "$language" | grep -Fq "$version"; then
+    asdf install "$language" "$version"
+    asdf global "$language" "$version"
+  fi
+}
+
+fancy_echo "Installing latest Ruby ..."
+install_asdf_language "ruby"
+gem update --system
+number_of_cores=$(nproc --all)
+bundle config --global jobs $((number_of_cores - 1))
+
+fancy_echo "Installing latest Node ..."
+install_asdf_language "nodejs"
+
+append_to_zshrc "source $HOME/.asdf/asdf.sh"
+append_to_zshrc "source $HOME/.asdf/completions/asdf.bash"
+
+if [ -f "$HOME/.laptop.local" ]; then
+  fancy_echo "Running your customizations from ~/.laptop.local ..."
+  # shellcheck disable=SC1090
+  . "$HOME/.laptop.local"
+fi
+
+sudo apt-get autoremove -y
+gnome-session-quit
